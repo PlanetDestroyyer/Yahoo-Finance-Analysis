@@ -1,0 +1,4 @@
+newsapi_python
+pandas
+streamlit
+yfinance
