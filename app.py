@@ -5,24 +5,24 @@ from newsapi import NewsApiClient
 import streamlit as st
 import json
 
-# Function to get news articles related to a company using News API
+
 def get_company_news(company, from_date, to_date, language='en'):
-    newsapi = NewsApiClient(api_key='d0991d9186da4c259f29b078bd9d7550')  # Replace 'YOUR_API_KEY' with your actual News API key
+    newsapi = NewsApiClient(api_key='d0991d9186da4c259f29b078bd9d7550')  
     news_articles = newsapi.get_everything(q=company, from_param=from_date, to=to_date, language=language)
     articles = []
     for article in news_articles['articles']:
         try:
-            # Extract only the date part
+
             date_parts = article['publishedAt'].split('T')[0]
             news_date = datetime.strptime(date_parts, '%Y-%m-%d').date()
             articles.append(article)
         except Exception as e:
-            # Print problematic date for debugging
+
             print(f"Ignoring article with invalid date: {article['publishedAt']}")
             continue
     return articles
 
-# Get historical stock prices
+
 def get_stock_data(company_ticker):
     GetCompanyInformation = yahooFinance.Ticker(company_ticker)
     return GetCompanyInformation.history(period="max")
@@ -30,26 +30,24 @@ def get_stock_data(company_ticker):
 def main():
     st.title('Stock News App')
 
-    # Load the raw JSON data for ticker suggestions
+
     with open("company_tickers.json", "r") as file:
         ticker_data = json.load(file)
 
-    # Input for search query
+
     search_query = st.text_input('Enter company name or ticker (e.g., "Microsoft" or "MSFT"):')
 
     if search_query:
-        # Filter the data based on the search query
+
         suggestions = [item['ticker'] for item in ticker_data.values() if search_query.upper() in item['ticker']]
 
-        # Display suggestions
         if suggestions:
             st.subheader("Ticker Suggestions:")
             for suggestion in suggestions:
                 st.write(suggestion)
         else:
             st.write("No suggestions found.")
-        
-        # Allow user to select a suggestion
+
         selected_suggestion = st.selectbox("Select a ticker from suggestions (if available):", suggestions, index=0 if suggestions else None)
         if selected_suggestion:
             company_ticker = selected_suggestion
@@ -72,27 +70,27 @@ def main():
         to_date = (today - timedelta(days=1)).strftime('%Y-%m-%d')
         news_articles = get_company_news(company_ticker, from_date, to_date)
 
-        # Display news articles
+ 
         st.subheader("Latest News Articles:")
         for idx, article in enumerate(news_articles):
             st.write(f"{idx+1}. [{article['title']}]({article['url']}) - {article['publishedAt']}")
             
-            # Parse the date string
+
             try:
                 date_parts = article['publishedAt'].split('T')[0]
                 news_date = datetime.strptime(date_parts, '%Y-%m-%d').date()
             except Exception as e:
-                # Skip articles with invalid dates (handled in get_company_news)
+
                 continue
 
-            # Find the closest stock price date to the news date
+
             try:
                 closest_date = min(stock_data.index, key=lambda x: abs(x.date() - news_date))
             except ValueError:
-                # No stock data available for the news date
+
                 continue
 
-            # Check if the closest date is before or after the news date
+
             if closest_date.date() < news_date:
                 price_on_news_date = stock_data.loc[closest_date]['Close']
                 next_date = closest_date + pd.Timedelta(days=1)
@@ -107,7 +105,7 @@ def main():
                     prev_date -= pd.Timedelta(days=1)
                 price_on_news_date = stock_data.loc[prev_date]['Close']
 
-            # Calculate percentage change
+
             percentage_change = ((price_next_day - price_on_news_date) / price_on_news_date) * 100
             st.write(f"   - Percentage change after {news_date}: {percentage_change:.2f}%")
 
